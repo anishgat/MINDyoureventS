@@ -1,0 +1,43 @@
+Goal: Build CRUD event signup app (Next.js + TS frontend, Express + Firebase backend)
+
+TODO
+1) Confirm monorepo structure and tooling
+   - Use /frontend and /backend folders.
+   - Document run/test commands for each package.
+   - Add env var templates for frontend and backend.
+
+2) Frontend setup first (Next.js + TypeScript)
+   - App structure with pages: Login, Event Dashboard, Create Event.
+   - Use dummy in-memory data and mocks for events/signups until backend is ready.
+   - API client abstraction that can swap from mock to real endpoints later.
+
+3) Event Dashboard UI
+   - Main view toggle: calendar month view vs chronological list view.
+   - Calendar view: render event tags inside date cells.
+   - List view: expandable event cards (collapsed: image, name, date, time, location; expanded: full details).
+   - Secondary view: list of signed-up events for current user.
+
+4) Create Event page (admin-only)
+   - Form with validation; submit to mock create event.
+   - Route guard + redirect if not admin (mocked role for now).
+
+5) Auth + roles
+   - Frontend login page + session handling (mocked role/user at first).
+   - Decide auth mechanism (Firebase Auth recommended) and token verification in backend.
+   - Store user role (admin vs participant/volunteer) and enforce RBAC.
+
+6) Define data model + API contract
+   - Firestore collections: events, signups (link userId <-> eventId), users (role).
+   - Event fields: title, description, date, startTime, endTime, location, imageUrl, capacity, createdBy, createdAt.
+   - Signups: eventId, userId, role (participant/volunteer), createdAt.
+   - API endpoints: create/list/get/update/delete events; signup/unsign; list user signups.
+
+7) Backend setup (Express + Firebase Admin)
+   - Initialize Express server, Firebase Admin SDK, CORS, validation, error handling.
+   - Implement CRUD routes for events with role-based guards for admin.
+   - Implement signup routes for authenticated users.
+   - Add tests for key routes and auth/role checks.
+
+8) Quality + docs
+   - Add tests for frontend components where practical.
+   - Update README with setup/run/test instructions and env vars.
