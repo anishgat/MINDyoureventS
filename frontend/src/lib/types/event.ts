@@ -10,6 +10,7 @@ export type EventItem = {
   location: string;
   imageUrl?: string;
   capacity: number;
+  questions: string[];
   createdBy: string;
   createdAt: string;
 };

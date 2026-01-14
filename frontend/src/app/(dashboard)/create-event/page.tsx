@@ -18,11 +18,13 @@ const emptyForm: EventFormState = {
   location: "",
   imageUrl: "",
   capacity: "",
+  questions: [],
 };
 
 export default function CreateEventPage() {
   const [user, setUser] = useState<User | null>(null);
   const [formState, setFormState] = useState<EventFormState>(emptyForm);
+  const [wantsQuestions, setWantsQuestions] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
@@ -78,6 +80,36 @@ export default function CreateEventPage() {
     }));
   };
 
+  const handleQuestionsToggle = (checked: boolean) => {
+    setWantsQuestions(checked);
+    setFormState((prev) => ({
+      ...prev,
+      questions: checked
+        ? prev.questions.length === 0
+          ? [""]
+          : prev.questions
+        : [],
+    }));
+  };
+
+  const handleQuestionChange = (index: number, value: string) => {
+    setFormState((prev) => {
+      const nextQuestions = [...prev.questions];
+      nextQuestions[index] = value;
+      return {
+        ...prev,
+        questions: nextQuestions,
+      };
+    });
+  };
+
+  const handleAddQuestion = () => {
+    setFormState((prev) => ({
+      ...prev,
+      questions: [...prev.questions, ""],
+    }));
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
@@ -95,14 +127,20 @@ export default function CreateEventPage() {
       return;
     }
 
+    const normalizedQuestions = wantsQuestions
+      ? formState.questions.map((question) => question.trim()).filter(Boolean)
+      : [];
+
     const payload: EventInput = {
       ...formState,
       capacity: formState.capacity ? Number(formState.capacity) : 0,
+      questions: normalizedQuestions,
     };
 
     await createEvent(payload);
     setSuccess(true);
     setFormState(emptyForm);
+    setWantsQuestions(false);
   };
 
   return (
@@ -216,6 +254,53 @@ export default function CreateEventPage() {
               type="url"
             />
           </label>
+
+          <div className="space-y-4 rounded-2xl border border-[var(--color-border)] bg-white/60 p-4 text-sm">
+            <label className="flex items-start gap-3">
+              <input
+                className="mt-1 h-4 w-4 rounded border border-[var(--color-border)]"
+                checked={wantsQuestions}
+                onChange={(event) => handleQuestionsToggle(event.target.checked)}
+                type="checkbox"
+              />
+              <span className="space-y-1">
+                <span className="block font-semibold">
+                  Additional signup questions
+                </span>
+                <span className="block text-xs text-[var(--color-ink-soft)]">
+                  Ask participants for any extra details before they sign up.
+                </span>
+              </span>
+            </label>
+
+            {wantsQuestions && (
+              <div className="space-y-4">
+                {formState.questions.map((question, index) => (
+                  <label className="space-y-2" key={`question-${index}`}>
+                    <span className="font-semibold">
+                      Question {index + 1}
+                    </span>
+                    <input
+                      className="w-full rounded-2xl border border-[var(--color-border)] bg-white/80 px-4 py-3"
+                      onChange={(event) =>
+                        handleQuestionChange(index, event.target.value)
+                      }
+                      value={question}
+                      type="text"
+                    />
+                  </label>
+                ))}
+
+                <button
+                  className="btn btn-ghost"
+                  onClick={handleAddQuestion}
+                  type="button"
+                >
+                  + Add another question
+                </button>
+              </div>
+            )}
+          </div>
 
           {error && (
             <p className="text-sm font-semibold text-red-600">{error}</p>
