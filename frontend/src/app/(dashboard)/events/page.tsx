@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import EventCalendar from "@/components/event/EventCalendar";
 import EventList from "@/components/event/EventList";
 import Sidebar from "@/components/layout/Sidebar";
@@ -76,7 +77,7 @@ export default function EventsPage() {
           className="fade-up flex flex-wrap items-center justify-between gap-4"
           style={{ animationDelay: "0.1s" }}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               className={view === "calendar" ? "btn btn-primary" : "btn btn-ghost"}
               onClick={() => setView("calendar")}
@@ -91,6 +92,21 @@ export default function EventsPage() {
             >
               List view
             </button>
+            {user?.role === "admin" ? (
+              <Link className="btn btn-ghost" href="/create-event">
+                <svg
+                  aria-hidden="true"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m7-7H5" />
+                </svg>
+                Create
+              </Link>
+            ) : null}
           </div>
           <div className="chip">{sortedEvents.length} total events</div>
         </div>
