@@ -31,7 +31,13 @@ export default function LoginPage() {
   const handleContinue = async () => {
     setIsSaving(true);
     await setCurrentUserRole(role);
-    router.push("/events");
+    const target =
+      role === "admin"
+        ? "/admin/events"
+        : role === "volunteer"
+          ? "/volunteer/events"
+          : "/participant/events";
+    router.push(target);
   };
 
   return (
