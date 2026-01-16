@@ -1,23 +1,24 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import type { FormEvent } from "react";
-import Link from "next/link";
-import { createEvent, getCurrentUser } from "@/lib/api/client";
-import type { EventInput } from "@/lib/types/event";
-import type { User } from "@/lib/types/user";
+import { useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
+import Link from 'next/link';
+import { createEvent, getCurrentUser } from '@/lib/api/client';
+import type { EventInput } from '@/lib/types/event';
+import type { User } from '@/lib/types/user';
+import { main } from '@/lib/api/ai';
 
-type EventFormState = Omit<EventInput, "capacity"> & { capacity: string };
+type EventFormState = Omit<EventInput, 'capacity'> & { capacity: string };
 
 const emptyForm: EventFormState = {
-  title: "",
-  description: "",
-  date: "",
-  startTime: "",
-  endTime: "",
-  location: "",
-  imageUrl: "",
-  capacity: "",
+  title: '',
+  description: '',
+  date: '',
+  startTime: '',
+  endTime: '',
+  location: '',
+  imageUrl: '',
+  capacity: '',
   questions: [],
 };
 
@@ -27,6 +28,7 @@ export default function CreateEventPage() {
   const [wantsQuestions, setWantsQuestions] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -49,15 +51,15 @@ export default function CreateEventPage() {
     );
   }
 
-  if (user.role !== "admin") {
+  if (user.role !== 'admin') {
     return (
       <div className="min-h-screen px-4 py-12 md:px-10">
         <div className="mx-auto max-w-3xl">
           <div className="card p-10">
             <h1 className="text-3xl font-semibold">Admin access required</h1>
             <p className="mt-3 text-sm text-[var(--color-ink-soft)]">
-              Only administrators can create new events. Switch to an admin role
-              to continue.
+              Only administrators can create new events. Switch to an admin role to
+              continue.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link className="btn btn-primary" href="/login">
@@ -84,11 +86,7 @@ export default function CreateEventPage() {
     setWantsQuestions(checked);
     setFormState((prev) => ({
       ...prev,
-      questions: checked
-        ? prev.questions.length === 0
-          ? [""]
-          : prev.questions
-        : [],
+      questions: checked ? (prev.questions.length === 0 ? [''] : prev.questions) : [],
     }));
   };
 
@@ -106,8 +104,32 @@ export default function CreateEventPage() {
   const handleAddQuestion = () => {
     setFormState((prev) => ({
       ...prev,
-      questions: [...prev.questions, ""],
+      questions: [...prev.questions, ''],
     }));
+  };
+
+  const handleGenerateImage = async () => {
+    const title = formState.title.trim();
+    if (!title) {
+      setError('Please add a title before generating an image.');
+      return;
+    }
+
+    setError(null);
+    setIsGenerating(true);
+
+    try {
+      const imageUrl = await main(title);
+      handleChange('imageUrl', imageUrl);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to generate an image right now.'
+      );
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -123,7 +145,7 @@ export default function CreateEventPage() {
       !formState.endTime ||
       !formState.location
     ) {
-      setError("Please fill in all required fields.");
+      setError('Please fill in all required fields.');
       return;
     }
 
@@ -146,26 +168,26 @@ export default function CreateEventPage() {
   return (
     <div className="min-h-screen px-4 py-12 md:px-10">
       <div className="mx-auto flex max-w-4xl flex-col gap-8">
-        <div className="fade-up" style={{ animationDelay: "0.05s" }}>
+        <div className="fade-up" style={{ animationDelay: '0.05s' }}>
           <span className="chip">Admin only</span>
           <h1 className="mt-4 text-4xl font-semibold">Create a new event</h1>
           <p className="mt-3 text-sm text-[var(--color-ink-soft)]">
-            Publish a new opportunity to the Hack4Good event calendar. This is
-            currently a mock submission that updates local in-memory data.
+            Publish a new opportunity to the Hack4Good event calendar. This is currently a
+            mock submission that updates local in-memory data.
           </p>
         </div>
 
         <form
           className="card fade-up space-y-6 p-8"
           onSubmit={handleSubmit}
-          style={{ animationDelay: "0.1s" }}
+          style={{ animationDelay: '0.1s' }}
         >
           <div className="grid gap-6 md:grid-cols-2">
             <label className="space-y-2 text-sm">
               <span className="font-semibold">Title *</span>
               <input
                 className="w-full rounded-2xl border border-[var(--color-border)] bg-white/80 px-4 py-3"
-                onChange={(event) => handleChange("title", event.target.value)}
+                onChange={(event) => handleChange('title', event.target.value)}
                 value={formState.title}
                 type="text"
               />
@@ -174,9 +196,7 @@ export default function CreateEventPage() {
               <span className="font-semibold">Location *</span>
               <input
                 className="w-full rounded-2xl border border-[var(--color-border)] bg-white/80 px-4 py-3"
-                onChange={(event) =>
-                  handleChange("location", event.target.value)
-                }
+                onChange={(event) => handleChange('location', event.target.value)}
                 value={formState.location}
                 type="text"
               />
@@ -187,9 +207,7 @@ export default function CreateEventPage() {
             <span className="font-semibold">Description *</span>
             <textarea
               className="min-h-[120px] w-full rounded-2xl border border-[var(--color-border)] bg-white/80 px-4 py-3"
-              onChange={(event) =>
-                handleChange("description", event.target.value)
-              }
+              onChange={(event) => handleChange('description', event.target.value)}
               value={formState.description}
             />
           </label>
@@ -199,7 +217,7 @@ export default function CreateEventPage() {
               <span className="font-semibold">Date *</span>
               <input
                 className="w-full rounded-2xl border border-[var(--color-border)] bg-white/80 px-4 py-3"
-                onChange={(event) => handleChange("date", event.target.value)}
+                onChange={(event) => handleChange('date', event.target.value)}
                 value={formState.date}
                 type="date"
               />
@@ -208,9 +226,7 @@ export default function CreateEventPage() {
               <span className="font-semibold">Capacity</span>
               <input
                 className="w-full rounded-2xl border border-[var(--color-border)] bg-white/80 px-4 py-3"
-                onChange={(event) =>
-                  handleChange("capacity", event.target.value)
-                }
+                onChange={(event) => handleChange('capacity', event.target.value)}
                 value={formState.capacity}
                 type="number"
                 min={0}
@@ -223,9 +239,7 @@ export default function CreateEventPage() {
               <span className="font-semibold">Start time *</span>
               <input
                 className="w-full rounded-2xl border border-[var(--color-border)] bg-white/80 px-4 py-3"
-                onChange={(event) =>
-                  handleChange("startTime", event.target.value)
-                }
+                onChange={(event) => handleChange('startTime', event.target.value)}
                 value={formState.startTime}
                 type="time"
               />
@@ -234,26 +248,41 @@ export default function CreateEventPage() {
               <span className="font-semibold">End time *</span>
               <input
                 className="w-full rounded-2xl border border-[var(--color-border)] bg-white/80 px-4 py-3"
-                onChange={(event) =>
-                  handleChange("endTime", event.target.value)
-                }
+                onChange={(event) => handleChange('endTime', event.target.value)}
                 value={formState.endTime}
                 type="time"
               />
             </label>
           </div>
 
-          <label className="space-y-2 text-sm">
-            <span className="font-semibold">Image URL</span>
-            <input
-              className="w-full rounded-2xl border border-[var(--color-border)] bg-white/80 px-4 py-3"
-              onChange={(event) =>
-                handleChange("imageUrl", event.target.value)
-              }
-              value={formState.imageUrl}
-              type="url"
-            />
-          </label>
+          <div className="flex flex-col gap-3 md:flex-row md:items-end">
+            <label className="flex-1 space-y-2 text-sm">
+              <span className="font-semibold">Image URL</span>
+              <input
+                className="w-full rounded-2xl border border-[var(--color-border)] bg-white/80 px-4 py-3"
+                onChange={(event) => handleChange('imageUrl', event.target.value)}
+                value={formState.imageUrl}
+                type="url"
+              />
+            </label>
+            <button
+              className="btn btn-ghost whitespace-nowrap"
+              onClick={handleGenerateImage}
+              type="button"
+              disabled={isGenerating}
+            >
+              {isGenerating ? 'Generating...' : 'Generate image'}
+            </button>
+          </div>
+          {formState.imageUrl && (
+            <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white/70">
+              <img
+                className="h-auto w-full object-cover"
+                src={formState.imageUrl}
+                alt={formState.title ? `${formState.title} preview` : 'Generated event'}
+              />
+            </div>
+          )}
 
           <div className="space-y-4 rounded-2xl border border-[var(--color-border)] bg-white/60 p-4 text-sm">
             <label className="flex items-start gap-3">
@@ -264,9 +293,7 @@ export default function CreateEventPage() {
                 type="checkbox"
               />
               <span className="space-y-1">
-                <span className="block font-semibold">
-                  Additional signup questions
-                </span>
+                <span className="block font-semibold">Additional signup questions</span>
                 <span className="block text-xs text-[var(--color-ink-soft)]">
                   Ask participants for any extra details before they sign up.
                 </span>
@@ -277,9 +304,7 @@ export default function CreateEventPage() {
               <div className="space-y-4">
                 {formState.questions.map((question, index) => (
                   <label className="space-y-2" key={`question-${index}`}>
-                    <span className="font-semibold">
-                      Question {index + 1}
-                    </span>
+                    <span className="font-semibold">Question {index + 1}</span>
                     <input
                       className="w-full rounded-2xl border border-[var(--color-border)] bg-white/80 px-4 py-3"
                       onChange={(event) =>
@@ -302,9 +327,7 @@ export default function CreateEventPage() {
             )}
           </div>
 
-          {error && (
-            <p className="text-sm font-semibold text-red-600">{error}</p>
-          )}
+          {error && <p className="text-sm font-semibold text-red-600">{error}</p>}
           {success && (
             <p className="text-sm font-semibold text-emerald-700">
               Event created in mock data. Check the dashboard list.
