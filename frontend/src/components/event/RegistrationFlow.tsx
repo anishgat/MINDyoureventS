@@ -1,9 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import type { UserRole } from '@/lib/types/user';
+import { addVolunteerToEvent } from '@/lib/api/volunteers';
+import { getCurrentUser } from '@/lib/api/client';
 
 type RegistrationFlowProps = {
   eventTitle: string;
+  eventId: string;
+  userRole?: UserRole;
   onComplete: () => Promise<void>;
   onCancel: () => void;
 };
@@ -15,6 +20,8 @@ type RegistrationData = {
 
 export default function RegistrationFlow({
   eventTitle,
+  eventId,
+  userRole,
   onComplete,
   onCancel,
 }: RegistrationFlowProps) {
@@ -23,6 +30,7 @@ export default function RegistrationFlow({
     name: '',
     joinTime: '',
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     // Lock background scroll while the flashcard flow is open
@@ -33,22 +41,32 @@ export default function RegistrationFlow({
     };
   }, []);
 
-  const steps = [
-    {
-      question: "What is your name?",
-      type: 'text' as const,
-      placeholder: 'Type your name here...',
-    },
-    {
-      question: "What time will you join the event?",
-      type: 'choice' as const,
-      options: [
-        'At the start (on time!)',
-        'A little bit later',
-        'I will arrive early',
-      ],
-    },
-  ];
+  // For volunteers, skip flashcards and only get name
+  const isVolunteer = userRole === 'volunteer';
+  const steps = isVolunteer
+    ? [
+        {
+          question: "What is your name?",
+          type: 'text' as const,
+          placeholder: 'Type your name here...',
+        },
+      ]
+    : [
+        {
+          question: "What is your name?",
+          type: 'text' as const,
+          placeholder: 'Type your name here...',
+        },
+        {
+          question: "What time will you join the event?",
+          type: 'choice' as const,
+          options: [
+            'At the start (on time!)',
+            'A little bit later',
+            'I will arrive early',
+          ],
+        },
+      ];
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -65,9 +83,18 @@ export default function RegistrationFlow({
   };
 
   const handleSubmit = async () => {
-    // In a real app, this would send the data to the backend
-    // For now, we just complete the registration
-    await onComplete();
+    setIsSubmitting(true);
+    try {
+      // For volunteers, add their name to the volunteers list
+      if (isVolunteer && formData.name.trim()) {
+        await addVolunteerToEvent(eventId, formData.name.trim());
+      }
+      await onComplete();
+    } catch (error) {
+      console.error('Registration error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const currentStepData = steps[currentStep];
@@ -188,15 +215,19 @@ export default function RegistrationFlow({
                 )}
                 <button
                   onClick={handleNext}
-                  disabled={!canProceed}
+                  disabled={!canProceed || isSubmitting}
                   className={`flex-1 rounded-2xl px-6 py-3 font-bold text-white transition-transform ${
-                    canProceed
+                    canProceed && !isSubmitting
                       ? 'bg-gradient-to-r from-[#3b82f6] to-[#2563eb] hover:scale-105 shadow-lg'
                       : 'bg-gray-300 cursor-not-allowed'
                   }`}
                   type="button"
                 >
-                  {currentStep === steps.length - 1 ? 'Complete Registration ✓' : 'Next →'}
+                  {isSubmitting
+                    ? 'Registering...'
+                    : currentStep === steps.length - 1
+                      ? 'Complete Registration ✓'
+                      : 'Next →'}
                 </button>
               </div>
             </div>

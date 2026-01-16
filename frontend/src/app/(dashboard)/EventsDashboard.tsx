@@ -11,6 +11,7 @@ import {
   listEvents,
   listUserSignups,
   toggleSignup,
+  initializeVolunteersForEvent,
 } from "@/lib/api/client";
 import type { EventItem, Signup } from "@/lib/types/event";
 import type { User } from "@/lib/types/user";
@@ -34,6 +35,14 @@ export default function EventsDashboard() {
       setUser(currentUser);
       setEvents(eventData);
       setSignups(signupData);
+      
+      // Initialize volunteers list for all events with volunteer quotas
+      eventData.forEach((event) => {
+        if (event.volunteerQuota !== undefined) {
+          initializeVolunteersForEvent(event.id);
+        }
+      });
+      
       setIsLoading(false);
     };
 
@@ -50,13 +59,23 @@ export default function EventsDashboard() {
     [events, signedEventIds]
   );
 
+  // Filter events: Hide blue (volunteer_only) events from participants
+  const filteredEvents = useMemo(() => {
+    if (user?.role === "participant") {
+      return events.filter(
+        (event) => event.volunteerEventType !== "volunteer_only"
+      );
+    }
+    return events;
+  }, [events, user?.role]);
+
   const sortedEvents = useMemo(() => {
-    return [...events].sort((a, b) => {
+    return [...filteredEvents].sort((a, b) => {
       const dateA = `${a.date}T${a.startTime}`;
       const dateB = `${b.date}T${b.startTime}`;
       return dateA.localeCompare(dateB);
     });
-  }, [events]);
+  }, [filteredEvents]);
 
   const handleToggleSignup = async (eventId: string) => {
     if (!user) {
@@ -115,25 +134,27 @@ export default function EventsDashboard() {
           <div className="card p-10 text-center text-sm text-[var(--color-ink-soft)]">
             Loading event dashboard...
           </div>
+        ) : view === "list" ? (
+          <div className="fade-up w-full" style={{ animationDelay: "0.15s" }}>
+            <EventList
+              events={sortedEvents}
+              signedEventIds={signedEventIds}
+              userRole={user?.role}
+              onToggleSignup={handleToggleSignup}
+            />
+          </div>
         ) : (
           <div
             className="fade-up grid gap-8 lg:grid-cols-[1.6fr_0.9fr]"
             style={{ animationDelay: "0.15s" }}
           >
             <div className="space-y-6">
-              {view === "calendar" ? (
-                <EventCalendar
-                  events={sortedEvents}
-                  signedEventIds={signedEventIds}
-                  onToggleSignup={handleToggleSignup}
-                />
-              ) : (
-                <EventList
-                  events={sortedEvents}
-                  signedEventIds={signedEventIds}
-                  onToggleSignup={handleToggleSignup}
-                />
-              )}
+              <EventCalendar
+                events={sortedEvents}
+                signedEventIds={signedEventIds}
+                userRole={user?.role}
+                onToggleSignup={handleToggleSignup}
+              />
             </div>
             <Sidebar signedEvents={signedEvents} />
           </div>

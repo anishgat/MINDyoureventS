@@ -1,16 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { EventItem } from '@/lib/types/event';
 import EventDetailsModal from './EventDetailsModal';
+import { getEventColorClasses } from '@/lib/utils/eventColors';
 
 type EventCardProps = {
   event: EventItem;
   isSignedUp: boolean;
+  userRole?: string;
   onToggleSignup: (eventId: string) => void;
 };
 
-export default function EventCard({ event, isSignedUp, onToggleSignup }: EventCardProps) {
+export default function EventCard({ event, isSignedUp, userRole, onToggleSignup }: EventCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
@@ -18,10 +20,28 @@ export default function EventCard({ event, isSignedUp, onToggleSignup }: EventCa
     await onToggleSignup(event.id);
   };
 
+  // Get color classes for volunteers/admins only
+  // Colors: yellow (experienced), green (quota_reached or quota full), blue (volunteer_only)
+  const colorClasses = useMemo(() => {
+    if (userRole !== 'volunteer' && userRole !== 'admin') {
+      return '';
+    }
+    if (event.volunteerEventType === 'experienced') {
+      return getEventColorClasses('yellow');
+    }
+    if (event.volunteerEventType === 'quota_reached') {
+      return getEventColorClasses('green');
+    }
+    if (event.volunteerEventType === 'volunteer_only') {
+      return getEventColorClasses('blue');
+    }
+    return '';
+  }, [event.volunteerEventType, userRole]);
+
   return (
     <>
       <article 
-        className="card overflow-hidden cursor-pointer transition-transform hover:scale-[1.02]"
+        className={`card overflow-hidden cursor-pointer transition-transform hover:scale-[1.02] ${colorClasses}`}
         onClick={() => setShowModal(true)}
       >
         <div className="flex flex-col gap-4 p-6 md:flex-row md:items-center">
@@ -89,6 +109,7 @@ export default function EventCard({ event, isSignedUp, onToggleSignup }: EventCa
         <EventDetailsModal
           event={event}
           isSignedUp={isSignedUp}
+          userRole={userRole as "admin" | "participant" | "volunteer" | undefined}
           onClose={() => setShowModal(false)}
           onRegister={handleRegister}
         />
