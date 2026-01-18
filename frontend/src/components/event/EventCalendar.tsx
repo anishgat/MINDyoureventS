@@ -54,8 +54,8 @@ export default function EventCalendar({
   const isVolunteerOrAdmin = userRole === 'volunteer' || userRole === 'admin';
 
   return (
-    <section className={isVolunteerOrAdmin ? "calendar-board-professional" : "calendar-board"}>
-      <div className="flex items-center justify-between gap-4 px-4 pt-4 sm:px-6 sm:pt-6">
+    <section className={`w-full ${isVolunteerOrAdmin ? "calendar-board-professional" : "calendar-board"}`}>
+      <div className="flex items-center justify-between gap-4 px-3 pt-4 sm:px-4 sm:pt-6">
         <div className="flex items-baseline gap-3">
           <h2 className="text-2xl font-semibold text-[var(--color-ink)]">
             {monthLabel}
@@ -99,7 +99,7 @@ export default function EventCalendar({
           </div>
         </div>
       )}
-      <div className={`mt-4 grid grid-cols-7 gap-px px-2 text-xs font-bold uppercase tracking-wide sm:px-4 ${
+      <div className={`mt-4 grid grid-cols-7 gap-px px-0 text-sm font-bold uppercase tracking-wide sm:px-1 ${
         isVolunteerOrAdmin 
           ? 'text-[var(--color-ink)]' 
           : 'text-white'
@@ -115,17 +115,17 @@ export default function EventCalendar({
         ].map((label) => (
           <div
             key={label}
-            className={`flex h-10 items-center justify-center rounded-t-[10px] text-center shadow-sm sm:h-11 ${
+            className={`flex h-12 items-center justify-center rounded-t-[12px] text-center shadow-sm sm:h-14 ${
               isVolunteerOrAdmin
                 ? 'bg-gray-100 text-[var(--color-ink)] font-semibold'
-                : 'bg-[#3b82f6] text-white'
+                : 'bg-gradient-to-br from-[#3b82f6] to-[#2563eb] text-white shadow-md'
             }`}
           >
             {label}
           </div>
         ))}
       </div>
-      <div className="calendar-grid mt-0 grid grid-cols-7 gap-px px-2 pb-4 sm:px-4 sm:pb-6">
+      <div className="calendar-grid mt-0 grid grid-cols-7 px-0 pb-6 sm:px-1 sm:pb-8 w-full">
         {cells.map((day, index) => {
           const dateKey = day
             ? `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
@@ -165,7 +165,7 @@ export default function EventCalendar({
             >
               {day ? (
                 <>
-                  <div className="flex items-start justify-between gap-1">
+                  <div className="flex items-start justify-between gap-2 mb-2">
                     <span className="calendar-day-label">{day}</span>
                     {hasEvents && (
                       <span className="calendar-day-bubble">
@@ -173,7 +173,7 @@ export default function EventCalendar({
                       </span>
                     )}
                   </div>
-                  <div className="mt-2 space-y-1.5">
+                  <div className="space-y-3">
                     {dayEvents.slice(0, 2).map((event) => {
                       // Get color classes for volunteers/admins
                       let colorClasses = '';
@@ -194,23 +194,25 @@ export default function EventCalendar({
                         <button
                           key={event.id}
                           type="button"
-                          className={`calendar-event-pill ${colorClasses}`}
+                          className={`calendar-event-card ${colorClasses}`}
                           onClick={(eventClick) => {
                             eventClick.stopPropagation();
                             setSelectedEvent(event);
                           }}
                         >
-                          {!isVolunteerOrAdmin && (
-                            <span className="calendar-event-icon" aria-hidden="true">
-                              ★
-                            </span>
+                          {!isVolunteerOrAdmin ? (
+                            <div className="calendar-event-card-content">
+                              <div className="calendar-event-card-title">{event.title}</div>
+                              <div className="calendar-event-card-time">{event.startTime}</div>
+                            </div>
+                          ) : (
+                            <span className="line-clamp-2">{event.title}</span>
                           )}
-                          <span className="line-clamp-2">{event.title}</span>
                         </button>
                       );
                     })}
                     {dayEvents.length > 2 && (
-                      <div className={`text-[10px] font-semibold ${isVolunteerOrAdmin ? 'text-[var(--color-ink-soft)]' : 'text-[#1d4ed8]'}`}>
+                      <div className={`text-xs font-bold mt-1 ${isVolunteerOrAdmin ? 'text-[var(--color-ink-soft)]' : 'text-[#1e40af]'}`}>
                         +{dayEvents.length - 2} more {isVolunteerOrAdmin ? 'events' : 'fun events'}
                       </div>
                     )}
