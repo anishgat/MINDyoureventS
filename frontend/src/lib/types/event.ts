@@ -1,5 +1,7 @@
 import type { UserRole } from "./user";
 
+export type VolunteerEventType = "experienced" | "quota_reached" | "volunteer_only";
+
 export type EventItem = {
   id: string;
   title: string;
@@ -10,6 +12,8 @@ export type EventItem = {
   location: string;
   imageUrl?: string;
   capacity: number;
+  volunteerQuota?: number; // Total volunteers needed for this event
+  volunteerEventType?: VolunteerEventType; // Color coding: experienced (yellow), quota_reached (green), volunteer_only (blue)
   questions: string[];
   createdBy: string;
   createdAt: string;

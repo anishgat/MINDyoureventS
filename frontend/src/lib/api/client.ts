@@ -1,6 +1,7 @@
 import type { EventInput, EventItem, Signup } from "@/lib/types/event";
 import type { User, UserRole } from "@/lib/types/user";
 import * as mock from "./mock";
+import * as volunteers from "./volunteers";
 
 export async function getCurrentUser(): Promise<User> {
   return mock.getCurrentUser();
@@ -29,3 +30,9 @@ export async function toggleSignup(
 export async function createEvent(input: EventInput): Promise<EventItem> {
   return mock.createEvent(input);
 }
+
+// Volunteer functions
+export const getVolunteersForEvent = volunteers.getVolunteersForEvent;
+export const addVolunteerToEvent = volunteers.addVolunteerToEvent;
+export const removeVolunteerFromEvent = volunteers.removeVolunteerFromEvent;
+export const initializeVolunteersForEvent = volunteers.initializeVolunteersForEvent;

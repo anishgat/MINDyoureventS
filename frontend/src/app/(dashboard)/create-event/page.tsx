@@ -8,7 +8,10 @@ import type { EventInput } from '@/lib/types/event';
 import type { User } from '@/lib/types/user';
 import { main } from '@/lib/api/ai';
 
-type EventFormState = Omit<EventInput, 'capacity'> & { capacity: string };
+type EventFormState = Omit<EventInput, 'capacity'> & { 
+  capacity: string;
+  volunteerEventType: '' | 'experienced' | 'quota_reached' | 'volunteer_only';
+};
 
 const emptyForm: EventFormState = {
   title: '',
@@ -19,6 +22,7 @@ const emptyForm: EventFormState = {
   location: '',
   imageUrl: '',
   capacity: '',
+  volunteerEventType: '',
   questions: [],
 };
 
@@ -156,6 +160,7 @@ export default function CreateEventPage() {
     const payload: EventInput = {
       ...formState,
       capacity: formState.capacity ? Number(formState.capacity) : 0,
+      volunteerEventType: formState.volunteerEventType || undefined,
       questions: normalizedQuestions,
     };
 
@@ -283,6 +288,25 @@ export default function CreateEventPage() {
               />
             </div>
           )}
+
+          <div className="space-y-4 rounded-2xl border border-[var(--color-border)] bg-white/60 p-4 text-sm">
+            <label className="space-y-2">
+              <span className="block font-semibold">Volunteer Event Type (Admin/Volunteer Only)</span>
+              <span className="block text-xs text-[var(--color-ink-soft)]">
+                Color coding for volunteer dashboard visibility
+              </span>
+              <select
+                className="w-full rounded-2xl border border-[var(--color-border)] bg-white/80 px-4 py-3"
+                onChange={(event) => handleChange('volunteerEventType', event.target.value)}
+                value={formState.volunteerEventType}
+              >
+                <option value="">Normal event (no special color)</option>
+                <option value="experienced">🟡 Experienced volunteers only</option>
+                <option value="quota_reached">🟢 Quota reached (disable registration)</option>
+                <option value="volunteer_only">🔵 Volunteer/External matters (hidden from participants)</option>
+              </select>
+            </label>
+          </div>
 
           <div className="space-y-4 rounded-2xl border border-[var(--color-border)] bg-white/60 p-4 text-sm">
             <label className="flex items-start gap-3">

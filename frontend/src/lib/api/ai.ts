@@ -1,3 +1,5 @@
+// @ts-ignore: Ignore type error for missing module declaration
+// If using a type-safe environment, consider defining a module declaration for '@google/genai'.
 import { GoogleGenAI } from "@google/genai";
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from "./firebase";

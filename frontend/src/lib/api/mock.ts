@@ -29,6 +29,8 @@ let mockEvents: EventItem[] = [
     location: "Harbor Greenway",
     imageUrl: "",
     capacity: 40,
+    volunteerQuota: 8,
+    volunteerEventType: "experienced", // Yellow - experienced volunteers only
     questions: [
       "Do you have any accessibility needs we should plan for?",
       "Do you need us to provide gloves or other gear?",
@@ -47,6 +49,8 @@ let mockEvents: EventItem[] = [
     location: "Northside Community Hub",
     imageUrl: "",
     capacity: 60,
+    volunteerQuota: 12,
+    volunteerEventType: "volunteer_only", // Blue - volunteer/external matters only
     questions: [
       "Do you have prior pantry or warehouse experience?",
       "Can you lift boxes up to 25 lbs?",
@@ -65,6 +69,7 @@ let mockEvents: EventItem[] = [
     location: "Hope Learning Lab",
     imageUrl: "",
     capacity: 25,
+    volunteerQuota: 5,
     questions: [],
     createdBy: "staff-3",
     createdAt: new Date().toISOString(),
@@ -80,6 +85,7 @@ let mockEvents: EventItem[] = [
     location: "Edison Arts Center",
     imageUrl: "",
     capacity: 30,
+    volunteerQuota: 6,
     questions: [],
     createdBy: "staff-4",
     createdAt: new Date().toISOString(),
@@ -95,6 +101,7 @@ let mockEvents: EventItem[] = [
     location: "Westgate Shelter Courtyard",
     imageUrl: "",
     capacity: 35,
+    volunteerQuota: 7,
     questions: [],
     createdBy: "staff-5",
     createdAt: new Date().toISOString(),

@@ -2,11 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import type { EventItem } from '@/lib/types/event';
+import type { UserRole } from '@/lib/types/user';
 import RegistrationFlow from './RegistrationFlow';
+import VolunteersList from './VolunteersList';
+import { getVolunteersForEvent } from '@/lib/api/volunteers';
+import { isQuotaReached } from '@/lib/utils/eventColors';
 
 type EventDetailsModalProps = {
   event: EventItem;
   isSignedUp: boolean;
+  userRole?: UserRole;
   onClose: () => void;
   onRegister: () => Promise<void>;
 };
@@ -14,20 +19,42 @@ type EventDetailsModalProps = {
 export default function EventDetailsModal({
   event,
   isSignedUp,
+  userRole,
   onClose,
   onRegister,
 }: EventDetailsModalProps) {
   const [showRegistration, setShowRegistration] = useState(false);
   const [isRegistered, setIsRegistered] = useState(isSignedUp);
+  const [volunteerCount, setVolunteerCount] = useState(0);
+  const [isQuotaFull, setIsQuotaFull] = useState(false);
 
   useEffect(() => {
     // Lock background scroll while modal is open
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    
+    // Check quota status for volunteers/admins
+    let interval: NodeJS.Timeout | null = null;
+    if ((userRole === 'volunteer' || userRole === 'admin') && event.volunteerQuota !== undefined) {
+      getVolunteersForEvent(event.id).then((volunteers) => {
+        setVolunteerCount(volunteers.length);
+        setIsQuotaFull(isQuotaReached(event, volunteers.length));
+      });
+      
+      // Refresh quota check periodically
+      interval = setInterval(() => {
+        getVolunteersForEvent(event.id).then((volunteers) => {
+          setVolunteerCount(volunteers.length);
+          setIsQuotaFull(isQuotaReached(event, volunteers.length));
+        });
+      }, 2000);
+    }
+    
     return () => {
       document.body.style.overflow = originalOverflow;
+      if (interval) clearInterval(interval);
     };
-  }, []);
+  }, [event.id, event.volunteerQuota, event.volunteerEventType, userRole]);
 
   const handleRegisterComplete = async () => {
     await onRegister();
@@ -144,6 +171,14 @@ export default function EventDetailsModal({
                   {event.capacity > 0 ? `${event.capacity} spots available` : 'Unlimited'}
                 </p>
               </div>
+              {userRole === 'volunteer' && event.volunteerQuota !== undefined && (
+                <div>
+                  <p className="mb-1 text-sm font-bold text-[var(--color-ink)]">Volunteers Needed</p>
+                  <p className="text-sm font-semibold text-[#3b82f6]">
+                    {event.volunteerQuota} volunteers required
+                  </p>
+                </div>
+              )}
               <div className="sm:col-span-2">
                 <p className="mb-1 text-sm font-bold text-[var(--color-ink)]">Check-in</p>
                 <p className="text-sm text-[var(--color-ink-soft)]">
@@ -151,6 +186,17 @@ export default function EventDetailsModal({
                 </p>
               </div>
             </div>
+
+            {/* Volunteers List - Single communal list at bottom of description */}
+            {(userRole === 'volunteer' || userRole === 'admin') && event.volunteerQuota !== undefined && (
+              <div className="mt-6">
+                <VolunteersList 
+                  eventId={event.id} 
+                  eventTitle={event.title}
+                  onVolunteerCountChange={setVolunteerCount}
+                />
+              </div>
+            )}
           </div>
 
           {/* Footer with Register Button */}
@@ -165,6 +211,14 @@ export default function EventDetailsModal({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                 </svg>
                 Registered!
+              </button>
+            ) : isQuotaFull && userRole === 'volunteer' ? (
+              <button
+                className="w-full rounded-2xl bg-gradient-to-r from-[#6b7280] to-[#4b5563] px-6 py-4 text-lg font-bold text-white shadow-lg cursor-not-allowed opacity-60"
+                type="button"
+                disabled
+              >
+                Quota Reached - Registration Closed
               </button>
             ) : (
               <button
@@ -183,6 +237,8 @@ export default function EventDetailsModal({
       {showRegistration && (
         <RegistrationFlow
           eventTitle={event.title}
+          eventId={event.id}
+          userRole={userRole}
           onComplete={handleRegisterComplete}
           onCancel={() => setShowRegistration(false)}
         />

@@ -1,15 +1,19 @@
+'use client';
+
 import type { EventItem } from "@/lib/types/event";
-import EventCard from "./EventCard";
+import EventCarouselCard from "./EventCarouselCard";
 
 type EventListProps = {
   events: EventItem[];
   signedEventIds: Set<string>;
+  userRole?: string;
   onToggleSignup: (eventId: string) => void;
 };
 
 export default function EventList({
   events,
   signedEventIds,
+  userRole,
   onToggleSignup,
 }: EventListProps) {
   const today = new Date();
@@ -53,21 +57,26 @@ export default function EventList({
 
   const orderedDates = Object.keys(eventsByDate).sort((a, b) => a.localeCompare(b));
 
+  const isVolunteerOrAdmin = userRole === 'volunteer' || userRole === 'admin';
+
   return (
-    <section className="card grid-texture max-h-[640px] overflow-y-auto p-4 sm:p-6">
+    <section className="w-full">
       {orderedDates.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
-          <div className="h-32 w-full max-w-xl rounded-3xl bg-gradient-to-r from-[var(--color-sky)] via-white to-[var(--color-mist)]" />
+        <div className="card flex flex-col items-center justify-center gap-4 py-16 text-center">
+          {!isVolunteerOrAdmin && (
+            <div className="h-32 w-full max-w-xl rounded-3xl bg-gradient-to-r from-[var(--color-sky)] via-white to-[var(--color-mist)]" />
+          )}
           <p className="text-sm font-semibold text-[var(--color-ink-soft)]">
             Nothing planned yet.
           </p>
-          <p className="max-w-sm text-xs text-[var(--color-ink-soft)]">
-            As you add events to the week, they will appear here grouped by day so you
-            can quickly scan what is coming up.
-          </p>
+          {!isVolunteerOrAdmin && (
+            <p className="max-w-sm text-xs text-[var(--color-ink-soft)]">
+              As you add events to the week, they will appear here in a beautiful carousel.
+            </p>
+          )}
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-12">
           {orderedDates.map((dateKey) => {
             const dayEvents = eventsByDate[dateKey];
             const headerLabel = labelForDate(dateKey);
@@ -79,24 +88,37 @@ export default function EventList({
               : "";
 
             return (
-              <div key={dateKey} className="space-y-4">
-                <div className="flex items-baseline justify-between gap-2">
-                  <h2 className="text-base font-semibold text-[var(--color-ink)]">
+              <div key={dateKey} className="space-y-5">
+                {/* Date Header */}
+                <div className="flex items-baseline justify-between gap-2 px-1">
+                  <h2 className="text-2xl font-bold text-[var(--color-ink)]">
                     {headerLabel}
                   </h2>
-                  <span className="text-xs font-medium uppercase tracking-wide text-[var(--color-ink-soft)]">
+                  <span className="text-sm font-medium text-[var(--color-ink-soft)]">
                     {rangeLabel}
                   </span>
                 </div>
-                <div className="space-y-3">
-                  {dayEvents.map((event) => (
-                    <EventCard
-                      key={event.id}
-                      event={event}
-                      isSignedUp={signedEventIds.has(event.id)}
-                      onToggleSignup={onToggleSignup}
-                    />
-                  ))}
+
+                {/* Horizontal Carousel */}
+                <div className="relative w-full">
+                  <div className="overflow-x-auto overflow-y-visible scrollbar-hide pb-6 scroll-smooth">
+                    <div className="flex gap-6 px-1" style={{ scrollSnapType: 'x mandatory' }}>
+                      {dayEvents.map((event, index) => (
+                        <div
+                          key={event.id}
+                          className="flex-shrink-0"
+                          style={{ scrollSnapAlign: index === 0 ? 'start' : 'center' }}
+                        >
+                          <EventCarouselCard
+                            event={event}
+                            isSignedUp={signedEventIds.has(event.id)}
+                            userRole={userRole}
+                            onToggleSignup={onToggleSignup}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             );
