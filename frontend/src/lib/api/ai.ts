@@ -1,4 +1,6 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+// @ts-ignore: Ignore type error for missing module declaration
+// If using a type-safe environment, consider defining a module declaration for '@google/genai'.
+import { GoogleGenAI } from "@google/genai";
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from "./firebase";
 
@@ -7,30 +9,19 @@ export async function main(prompt: string) {
     throw new Error("Prompt is required to generate an image.");
   }
 
-  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("Gemini API key is not configured. Please add NEXT_PUBLIC_GEMINI_API_KEY to your .env.local file.");
-  }
+  const ai = new GoogleGenAI({apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY});
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-
-  // Note: The Gemini API structure may need adjustment based on actual API response
-  // This is a placeholder implementation - you may need to update based on the actual API
-  const model = genAI.getGenerativeModel({ 
-    model: "gemini-2.0-flash-exp" // or "gemini-1.5-flash" - check current available models
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash-image",
+    contents: prompt,
+    config: {
+      systemInstruction: `Your job is to generate a cartoon-style sticker of the activity in the prompt. If a location is specified in the prompt, add an animated background of the location where appropriate. Use a vibrant color palette. 
+      `
+    }
   });
 
-  const result = await model.generateContent({
-    contents: [{
-      role: "user",
-      parts: [{ text: `Generate a cartoon-style sticker of: ${prompt}. Use vibrant colors and make it child-friendly.` }]
-    }],
-  });
-
-  const response = await result.response;
-
-  // Handle response - adjust based on actual Gemini API response structure
-  const parts = response.candidates?.[0]?.content?.parts;
+  const candidate = response.candidates?.[0];
+  const parts = candidate?.content?.parts;
   if (!parts) {
     throw new Error("No content parts returned from the model.");
   }
