@@ -130,11 +130,11 @@ export default function RegistrationFlow({
                 </span>
                 <button
                   onClick={onCancel}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-[var(--color-ink)] shadow-md transition-transform hover:scale-110"
+                  className="relative z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/80 text-[var(--color-ink)] shadow-md transition-transform hover:scale-110 cursor-pointer"
                   type="button"
                   aria-label="Close"
                 >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-5 w-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>

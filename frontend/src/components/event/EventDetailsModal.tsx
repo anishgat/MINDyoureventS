@@ -83,12 +83,12 @@ export default function EventDetailsModal({
           <div className="relative flex-shrink-0 bg-gradient-to-br from-[#3b82f6] via-[#22c55e] to-[#f97316] p-6">
             <button
               onClick={handleClose}
-              className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[var(--color-ink)] shadow-md transition-transform hover:scale-110"
+              className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[var(--color-ink)] shadow-md transition-transform hover:scale-110 cursor-pointer"
               type="button"
               aria-label="Close"
             >
               <svg
-                className="h-5 w-5"
+                className="h-5 w-5 pointer-events-none"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
