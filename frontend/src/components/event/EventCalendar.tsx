@@ -184,7 +184,7 @@ export default function EventCalendar({
           userRole={userRole as "admin" | "participant" | "volunteer" | undefined}
           onClose={() => setSelectedEvent(null)}
           onRegister={async () => {
-            onToggleSignup(selectedEvent.id);
+            await onToggleSignup(selectedEvent.id);
           }}
         />
       )}
