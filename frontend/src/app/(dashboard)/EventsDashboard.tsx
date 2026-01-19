@@ -85,11 +85,9 @@ export default function EventsDashboard() {
     setSignups(updated);
   };
 
-  const isParticipant = user?.role === 'participant';
-  
   return (
-    <div className={`min-h-screen ${isParticipant ? 'px-2 py-4 sm:px-3 md:px-4' : 'px-2 py-6 sm:px-4 md:px-8 lg:px-10'}`}>
-      <div className={`mx-auto flex w-full flex-col gap-8 ${isParticipant ? 'max-w-[95vw]' : 'max-w-7xl'}`}>
+    <div className="min-h-screen px-2 py-4 sm:px-3 md:px-4">
+      <div className="mx-auto flex w-full max-w-[95vw] flex-col gap-8">
         <div className="fade-up" style={{ animationDelay: "0.05s" }}>
           <TopNav user={user} />
         </div>

@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import type { UserRole } from '@/lib/types/user';
-import { addVolunteerToEvent } from '@/lib/api/volunteers';
-import { getCurrentUser } from '@/lib/api/client';
+import { setCurrentUserName } from '@/lib/api/client';
 
 type RegistrationFlowProps = {
   eventTitle: string;
   eventId: string;
   userRole?: UserRole;
-  onComplete: () => Promise<void>;
+  onComplete: (data: RegistrationData) => Promise<void>;
   onCancel: () => void;
 };
 
@@ -85,11 +84,13 @@ export default function RegistrationFlow({
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // For volunteers, add their name to the volunteers list
-      if (isVolunteer && formData.name.trim()) {
-        await addVolunteerToEvent(eventId, formData.name.trim());
+      if (formData.name.trim()) {
+        await setCurrentUserName(formData.name.trim());
       }
-      await onComplete();
+      await onComplete({
+        name: formData.name.trim(),
+        joinTime: formData.joinTime,
+      });
     } catch (error) {
       console.error('Registration error:', error);
     } finally {

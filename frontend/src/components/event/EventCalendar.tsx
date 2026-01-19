@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import type { EventItem } from "@/lib/types/event";
 import EventDetailsModal from './EventDetailsModal';
-import { getEventColorClasses } from '@/lib/utils/eventColors';
+import { getKidIconForEventTitle } from "@/lib/utils/kidIcons";
 
 type EventCalendarProps = {
   events: EventItem[];
@@ -179,14 +179,14 @@ export default function EventCalendar({
                       let colorClasses = '';
                       if (isVolunteerOrAdmin) {
                         if (event.volunteerEventType === 'experienced') {
-                          colorClasses = 'bg-yellow-400/90 border-yellow-500 text-yellow-900';
+                          colorClasses = 'bg-yellow-300 border-yellow-600 text-yellow-950';
                         } else if (event.volunteerEventType === 'quota_reached') {
-                          colorClasses = 'bg-green-500/90 border-green-600 text-green-900';
+                          colorClasses = 'bg-green-300 border-green-600 text-green-950';
                         } else if (event.volunteerEventType === 'volunteer_only') {
-                          colorClasses = 'bg-blue-500/90 border-blue-600 text-blue-900';
+                          colorClasses = 'bg-blue-500 border-blue-700 text-white';
                         } else {
                           // Default gray for events without special type
-                          colorClasses = 'bg-gray-500/80 border-gray-600 text-gray-900';
+                          colorClasses = 'bg-slate-200 border-slate-300 text-slate-950';
                         }
                       }
 
@@ -194,7 +194,11 @@ export default function EventCalendar({
                         <button
                           key={event.id}
                           type="button"
-                          className={`calendar-event-card ${colorClasses}`}
+                          className={
+                            isVolunteerOrAdmin
+                              ? `calendar-event-legend-card ${colorClasses}`
+                              : "calendar-event-card"
+                          }
                           onClick={(eventClick) => {
                             eventClick.stopPropagation();
                             setSelectedEvent(event);
@@ -202,11 +206,28 @@ export default function EventCalendar({
                         >
                           {!isVolunteerOrAdmin ? (
                             <div className="calendar-event-card-content">
-                              <div className="calendar-event-card-title">{event.title}</div>
+                              {(() => {
+                                const icon = getKidIconForEventTitle(event.title);
+                                return (
+                                  <div className="calendar-event-card-header">
+                                    <span
+                                      className={`kid-icon-badge kid-icon-${icon.tone}`}
+                                      aria-hidden="true"
+                                      title={icon.label}
+                                    >
+                                      {icon.emoji}
+                                    </span>
+                                    <div className="calendar-event-card-title">{event.title}</div>
+                                  </div>
+                                );
+                              })()}
                               <div className="calendar-event-card-time">{event.startTime}</div>
                             </div>
                           ) : (
-                            <span className="line-clamp-2">{event.title}</span>
+                            <>
+                              <div className="calendar-event-legend-title">{event.title}</div>
+                              <div className="calendar-event-legend-time">{event.startTime}</div>
+                            </>
                           )}
                         </button>
                       );

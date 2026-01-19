@@ -5,7 +5,8 @@ import type { EventItem } from '@/lib/types/event';
 import type { UserRole } from '@/lib/types/user';
 import RegistrationFlow from './RegistrationFlow';
 import VolunteersList from './VolunteersList';
-import { getVolunteersForEvent } from '@/lib/api/volunteers';
+import { addVolunteerToEvent, getVolunteersForEvent } from '@/lib/api/volunteers';
+import { getCurrentUser, listEventSignups, listUserSignups, listUsers } from '@/lib/api/client';
 import { isQuotaReached } from '@/lib/utils/eventColors';
 
 type EventDetailsModalProps = {
@@ -23,42 +24,76 @@ export default function EventDetailsModal({
   onClose,
   onRegister,
 }: EventDetailsModalProps) {
+  const isVolunteerOrAdmin = userRole === "volunteer" || userRole === "admin";
   const [showRegistration, setShowRegistration] = useState(false);
   const [isRegistered, setIsRegistered] = useState(isSignedUp);
   const [volunteerCount, setVolunteerCount] = useState(0);
   const [isQuotaFull, setIsQuotaFull] = useState(false);
+  const [participantCount, setParticipantCount] = useState(0);
+  const [participantNames, setParticipantNames] = useState<string[]>([]);
+  const [isCapacityFull, setIsCapacityFull] = useState(false);
+  const [registerError, setRegisterError] = useState<string | null>(null);
 
   useEffect(() => {
     // Lock background scroll while modal is open
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     
-    // Check quota status for volunteers/admins
+    // Check quota / capacity status (poll so admin sees live signups)
     let interval: NodeJS.Timeout | null = null;
-    if ((userRole === 'volunteer' || userRole === 'admin') && event.volunteerQuota !== undefined) {
-      getVolunteersForEvent(event.id).then((volunteers) => {
+    const refresh = async () => {
+      // Volunteer quota (communal list)
+      if ((userRole === "volunteer" || userRole === "admin") && event.volunteerQuota !== undefined) {
+        const volunteers = await getVolunteersForEvent(event.id);
         setVolunteerCount(volunteers.length);
         setIsQuotaFull(isQuotaReached(event, volunteers.length));
-      });
-      
-      // Refresh quota check periodically
-      interval = setInterval(() => {
-        getVolunteersForEvent(event.id).then((volunteers) => {
-          setVolunteerCount(volunteers.length);
-          setIsQuotaFull(isQuotaReached(event, volunteers.length));
-        });
-      }, 2000);
-    }
+      } else {
+        setVolunteerCount(0);
+        setIsQuotaFull(false);
+      }
+
+      // Participant capacity (based on signup records)
+      const [eventSignups, users] = await Promise.all([
+        listEventSignups(event.id),
+        listUsers(),
+      ]);
+      const userNameById = new Map(users.map((u) => [u.id, u.name] as const));
+      const participants = eventSignups.filter((signup) => signup.role === "participant");
+      setParticipantCount(participants.length);
+      setParticipantNames(
+        participants.map((signup) => userNameById.get(signup.userId) ?? signup.userId)
+      );
+      setIsCapacityFull(event.capacity > 0 ? participants.length >= event.capacity : false);
+    };
+
+    refresh();
+    interval = setInterval(refresh, 2000);
     
     return () => {
       document.body.style.overflow = originalOverflow;
       if (interval) clearInterval(interval);
     };
-  }, [event.id, event.volunteerQuota, event.volunteerEventType, userRole]);
+  }, [event.id, event.volunteerQuota, event.volunteerEventType, event.capacity, userRole]);
 
-  const handleRegisterComplete = async () => {
+  const handleRegisterComplete = async (data: { name: string; joinTime: string }) => {
+    setRegisterError(null);
     await onRegister();
-    setIsRegistered(true);
+    const me = await getCurrentUser();
+    const mySignups = await listUserSignups(me.id);
+    const didSignup = mySignups.some((signup) => signup.eventId === event.id);
+    setIsRegistered(didSignup);
+    if (didSignup && userRole === "volunteer" && data.name) {
+      await addVolunteerToEvent(event.id, data.name);
+    }
+    if (!didSignup) {
+      if (isCapacityFull && userRole === "participant") {
+        setRegisterError("This event is full. Please pick another event.");
+      } else if (isQuotaFull && userRole === "volunteer") {
+        setRegisterError("Volunteer quota is full for this event.");
+      } else {
+        setRegisterError("Could not complete registration. Please try again.");
+      }
+    }
     setShowRegistration(false);
   };
 
@@ -80,7 +115,13 @@ export default function EventDetailsModal({
       <div className="fixed inset-4 z-50 mx-auto max-h-[90vh] max-w-4xl overflow-hidden rounded-3xl bg-white shadow-2xl">
         <div className="flex h-full flex-col overflow-hidden">
           {/* Header */}
-          <div className="relative flex-shrink-0 bg-gradient-to-br from-[#3b82f6] via-[#22c55e] to-[#f97316] p-6">
+          <div
+            className={`relative flex-shrink-0 p-6 ${
+              isVolunteerOrAdmin
+                ? "bg-slate-900"
+                : "bg-gradient-to-br from-[#3b82f6] via-[#22c55e] to-[#f97316]"
+            }`}
+          >
             <button
               onClick={handleClose}
               className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[var(--color-ink)] shadow-md transition-transform hover:scale-110 cursor-pointer"
@@ -168,10 +209,12 @@ export default function EventDetailsModal({
               <div>
                 <p className="mb-1 text-sm font-bold text-[var(--color-ink)]">Capacity</p>
                 <p className="text-sm text-[var(--color-ink-soft)]">
-                  {event.capacity > 0 ? `${event.capacity} spots available` : 'Unlimited'}
+                  {event.capacity > 0
+                    ? `${participantCount}/${event.capacity} participants registered`
+                    : 'Unlimited'}
                 </p>
               </div>
-              {userRole === 'volunteer' && event.volunteerQuota !== undefined && (
+              {(userRole === 'volunteer' || userRole === 'admin') && event.volunteerQuota !== undefined && (
                 <div>
                   <p className="mb-1 text-sm font-bold text-[var(--color-ink)]">Volunteers Needed</p>
                   <p className="text-sm font-semibold text-[#3b82f6]">
@@ -187,20 +230,71 @@ export default function EventDetailsModal({
               </div>
             </div>
 
-            {/* Volunteers List - Single communal list at bottom of description */}
-            {(userRole === 'volunteer' || userRole === 'admin') && event.volunteerQuota !== undefined && (
-              <div className="mt-6">
-                <VolunteersList 
-                  eventId={event.id} 
-                  eventTitle={event.title}
-                  onVolunteerCountChange={setVolunteerCount}
-                />
+            {/* Signups */}
+            {userRole === "admin" ? (
+              <div className="mt-6 grid gap-6 md:grid-cols-2">
+                {event.volunteerQuota !== undefined ? (
+                  <VolunteersList
+                    eventId={event.id}
+                    eventTitle={event.title}
+                    onVolunteerCountChange={setVolunteerCount}
+                  />
+                ) : (
+                  <div className="rounded-2xl border-2 border-[var(--color-border)] bg-white/80 p-5">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-lg font-bold text-[var(--color-ink)]">Volunteers</h4>
+                      <span className="chip">N/A</span>
+                    </div>
+                    <p className="mt-3 text-sm text-[var(--color-ink-soft)]">
+                      This event does not track volunteer quota.
+                    </p>
+                  </div>
+                )}
+
+                <div className="rounded-2xl border-2 border-[var(--color-border)] bg-white/80 p-5">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-lg font-bold text-[var(--color-ink)]">Participant signups</h4>
+                    <span className="chip">{participantCount} total</span>
+                  </div>
+                  {participantNames.length === 0 ? (
+                    <p className="mt-3 text-sm text-[var(--color-ink-soft)]">
+                      No participants have signed up yet.
+                    </p>
+                  ) : (
+                    <ul className="mt-4 space-y-2">
+                      {participantNames.map((name, index) => (
+                        <li
+                          key={`${name}-${index}`}
+                          className="rounded-xl border border-[var(--color-border)] bg-white/70 px-4 py-3 text-sm font-semibold text-[var(--color-ink)]"
+                        >
+                          {name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
+            ) : (
+              (userRole === "volunteer" || userRole === "admin") &&
+              event.volunteerQuota !== undefined && (
+                <div className="mt-6">
+                  <VolunteersList
+                    eventId={event.id}
+                    eventTitle={event.title}
+                    onVolunteerCountChange={setVolunteerCount}
+                  />
+                </div>
+              )
             )}
           </div>
 
           {/* Footer with Register Button */}
           <div className="flex-shrink-0 border-t-2 border-[var(--color-border)] bg-[var(--color-mist)] p-6">
+            {registerError ? (
+              <p className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                {registerError}
+              </p>
+            ) : null}
             {isRegistered ? (
               <button
                 className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-[#22c55e] to-[#16a34a] px-6 py-4 text-lg font-bold text-white shadow-lg transition-transform hover:scale-105"
@@ -211,6 +305,14 @@ export default function EventDetailsModal({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                 </svg>
                 Registered!
+              </button>
+            ) : isCapacityFull && userRole === 'participant' ? (
+              <button
+                className="w-full rounded-2xl bg-gradient-to-r from-[#6b7280] to-[#4b5563] px-6 py-4 text-lg font-bold text-white shadow-lg cursor-not-allowed opacity-60"
+                type="button"
+                disabled
+              >
+                Event Full - Registration Closed
               </button>
             ) : isQuotaFull && userRole === 'volunteer' ? (
               <button

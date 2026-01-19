@@ -166,10 +166,10 @@ body {
   }
 
   .calendar-board-professional .calendar-cell {
-    border-radius: 8px;
+    border-radius: 18px;
     background: #ffffff;
-    border: 1px solid #e5e7eb;
-    min-height: 100px;
+    border: 2px solid #e5e7eb;
+    min-height: 220px;
   }
 
   .calendar-cell-has-events {
@@ -246,7 +246,13 @@ body {
     min-height: 68px;
     padding: 12px 14px;
     border-radius: 16px;
-    background: linear-gradient(135deg, #3b82f6 0%, #22c55e 50%, #f97316 100%);
+    background: linear-gradient(
+      135deg,
+      #60a5fa 0%,
+      #a78bfa 35%,
+      #fb7185 70%,
+      #fbbf24 100%
+    );
     color: #ffffff;
     font-size: 1rem;
     font-weight: 900;
@@ -275,7 +281,16 @@ body {
     min-height: 90px;
     padding: 14px 12px;
     border-radius: 18px;
-    background: linear-gradient(135deg, #3b82f6 0%, #22c55e 50%, #f97316 100%);
+    background:
+      radial-gradient(120px 90px at 18% 22%, rgba(255, 255, 255, 0.28) 0%, transparent 62%),
+      radial-gradient(140px 100px at 82% 25%, rgba(255, 255, 255, 0.22) 0%, transparent 60%),
+      linear-gradient(
+        135deg,
+        #60a5fa 0%,
+        #a78bfa 35%,
+        #fb7185 70%,
+        #fbbf24 100%
+      );
     color: #ffffff;
     box-shadow: 
       0 6px 0 rgba(15, 23, 42, 0.35),
@@ -298,6 +313,13 @@ body {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    width: 100%;
+  }
+
+  .calendar-event-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
     width: 100%;
   }
 
@@ -326,6 +348,104 @@ body {
     padding: 4px 10px;
     border-radius: 12px;
     align-self: flex-start;
+    backdrop-filter: blur(4px);
+  }
+
+  /* Kid-friendly sticker icons (participants only) */
+  .kid-icon-badge {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    line-height: 1;
+    box-shadow:
+      0 3px 0 rgba(15, 23, 42, 0.25),
+      0 8px 18px rgba(15, 23, 42, 0.18);
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    transform: rotate(-6deg);
+  }
+
+  .kid-icon-pink {
+    background: linear-gradient(135deg, #fb7185 0%, #f472b6 60%, #fde68a 100%);
+  }
+  .kid-icon-blue {
+    background: linear-gradient(135deg, #38bdf8 0%, #60a5fa 60%, #a7f3d0 100%);
+  }
+  .kid-icon-green {
+    background: linear-gradient(135deg, #34d399 0%, #86efac 60%, #fde68a 100%);
+  }
+  .kid-icon-yellow {
+    background: linear-gradient(135deg, #fbbf24 0%, #fde68a 60%, #fca5a5 100%);
+  }
+  .kid-icon-purple {
+    background: linear-gradient(135deg, #a78bfa 0%, #f0abfc 60%, #93c5fd 100%);
+  }
+
+  /* Small sticker used in list view title */
+  .kid-icon-inline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    margin-right: 10px;
+    font-size: 15px;
+    line-height: 1;
+    box-shadow:
+      0 2px 0 rgba(15, 23, 42, 0.2),
+      0 6px 14px rgba(15, 23, 42, 0.14);
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    vertical-align: -4px;
+  }
+
+  /* Solid (non-rainbow) legend cards for volunteer/admin */
+  .calendar-event-legend-card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 90px;
+    padding: 12px 12px;
+    border-radius: 16px;
+    background-image: none !important;
+    box-shadow:
+      0 4px 0 rgba(15, 23, 42, 0.18),
+      0 2px 10px rgba(15, 23, 42, 0.12);
+    border: 2px solid rgba(15, 23, 42, 0.12);
+    text-align: left;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    box-sizing: border-box;
+  }
+
+  .calendar-event-legend-card:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 5px 0 rgba(15, 23, 42, 0.2),
+      0 3px 14px rgba(15, 23, 42, 0.16);
+  }
+
+  .calendar-event-legend-title {
+    font-size: 1.05rem;
+    font-weight: 900;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .calendar-event-legend-time {
+    margin-top: 8px;
+    align-self: flex-start;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    background: rgba(255, 255, 255, 0.6);
+    color: rgba(15, 23, 42, 0.92);
     backdrop-filter: blur(4px);
   }
 
