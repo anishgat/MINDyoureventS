@@ -86,8 +86,8 @@ export default function EventsDashboard() {
   };
 
   return (
-    <div className="min-h-screen px-2 py-6 sm:px-4 md:px-8 lg:px-10">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
+    <div className="min-h-screen px-2 py-4 sm:px-3 md:px-4">
+      <div className="mx-auto flex w-full max-w-[95vw] flex-col gap-8">
         <div className="fade-up" style={{ animationDelay: "0.05s" }}>
           <TopNav user={user} />
         </div>
@@ -145,10 +145,10 @@ export default function EventsDashboard() {
           </div>
         ) : (
           <div
-            className="fade-up grid gap-8 lg:grid-cols-[1.6fr_0.9fr]"
+            className="fade-up grid gap-8 lg:grid-cols-[2.2fr_0.8fr]"
             style={{ animationDelay: "0.15s" }}
           >
-            <div className="space-y-6">
+            <div className="space-y-6 w-full min-w-0">
               <EventCalendar
                 events={sortedEvents}
                 signedEventIds={signedEventIds}

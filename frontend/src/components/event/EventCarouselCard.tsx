@@ -5,6 +5,7 @@ import type { EventItem } from '@/lib/types/event';
 import EventDetailsModal from './EventDetailsModal';
 import { getEventImageByType } from '@/lib/utils/eventImages';
 import { getEventColorClasses } from '@/lib/utils/eventColors';
+import { getKidIconForEventTitle } from '@/lib/utils/kidIcons';
 
 type EventCarouselCardProps = {
   event: EventItem;
@@ -21,13 +22,15 @@ export default function EventCarouselCard({
 }: EventCarouselCardProps) {
   const [showModal, setShowModal] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const isVolunteerOrAdmin = userRole === 'volunteer' || userRole === 'admin';
+  const isParticipant = !isVolunteerOrAdmin;
 
   const handleRegister = async () => {
     await onToggleSignup(event.id);
   };
 
   // Get color classes for volunteers/admins
-  const colorClasses = userRole === 'volunteer' || userRole === 'admin'
+  const colorClasses = isVolunteerOrAdmin
     ? (() => {
         if (event.volunteerEventType === 'experienced') {
           return getEventColorClasses('yellow');
@@ -43,7 +46,9 @@ export default function EventCarouselCard({
     : '';
 
   const imageUrl = event.imageUrl || getEventImageByType(event.title, event.location);
-  const fallbackGradient = 'bg-gradient-to-br from-[#3b82f6] via-[#22c55e] to-[#f97316]';
+  const fallbackGradient = isVolunteerOrAdmin
+    ? 'bg-gradient-to-br from-slate-800 via-slate-700 to-slate-600'
+    : 'bg-gradient-to-br from-[#60a5fa] via-[#a78bfa] to-[#fb7185]';
 
   return (
     <>
@@ -106,6 +111,18 @@ export default function EventCarouselCard({
         {/* Content Section */}
         <div className="p-5">
           <h3 className="text-xl font-bold text-[var(--color-ink)] line-clamp-2 mb-2">
+            {isParticipant ? (() => {
+              const icon = getKidIconForEventTitle(event.title);
+              return (
+                <span
+                  className={`kid-icon-inline kid-icon-${icon.tone}`}
+                  aria-hidden="true"
+                  title={icon.label}
+                >
+                  {icon.emoji}
+                </span>
+              );
+            })() : null}
             {event.title}
           </h3>
           
