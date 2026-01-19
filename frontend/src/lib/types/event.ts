@@ -11,6 +11,7 @@ export type EventItem = {
   endTime: string;
   location: string;
   imageUrl?: string;
+  calendarIconUrl?: string;
   capacity: number;
   volunteerQuota?: number; // Total volunteers needed for this event
   volunteerEventType?: VolunteerEventType; // Color coding: experienced (yellow), quota_reached (green), volunteer_only (blue)

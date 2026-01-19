@@ -6,9 +6,9 @@ import Link from 'next/link';
 import { createEvent, getCurrentUser } from '@/lib/api/client';
 import type { EventInput } from '@/lib/types/event';
 import type { User } from '@/lib/types/user';
-import { main } from '@/lib/api/ai';
+import { generateEventBackground } from '@/lib/api/ai';
 
-type EventFormState = Omit<EventInput, 'capacity'> & { 
+type EventFormState = Omit<EventInput, 'capacity'> & {
   capacity: string;
   volunteerEventType: '' | 'experienced' | 'quota_reached' | 'volunteer_only';
 };
@@ -21,6 +21,7 @@ const emptyForm: EventFormState = {
   endTime: '',
   location: '',
   imageUrl: '',
+  calendarIconUrl: '',
   capacity: '',
   volunteerEventType: '',
   questions: [],
@@ -32,7 +33,8 @@ export default function CreateEventPage() {
   const [wantsQuestions, setWantsQuestions] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [isGeneratingIcon, setIsGeneratingIcon] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -112,6 +114,27 @@ export default function CreateEventPage() {
     }));
   };
 
+  const readImageFile = (file: File, onLoad: (value: string) => void) => {
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result === 'string') {
+        onLoad(result);
+      } else {
+        setError('Unable to read that file.');
+      }
+    };
+    reader.onerror = () => {
+      setError('Unable to read that file.');
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleGenerateImage = async () => {
     const title = formState.title.trim();
     if (!title) {
@@ -120,19 +143,43 @@ export default function CreateEventPage() {
     }
 
     setError(null);
-    setIsGenerating(true);
+    setIsGeneratingImage(true);
 
     try {
-      const imageUrl = await main(title);
+      const imageUrl = await generateEventBackground(title);
       handleChange('imageUrl', imageUrl);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Unable to generate an image right now.',
+      );
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
+  const handleGenerateIcon = async () => {
+    const title = formState.title.trim();
+    if (!title) {
+      setError('Please add a title before generating a calendar icon.');
+      return;
+    }
+
+    setError(null);
+    setIsGeneratingIcon(true);
+
+    try {
+      const iconUrl = await generateEventBackground(
+        `Calendar icon for "${title}" as a friendly sticker illustration.`,
+      );
+      handleChange('calendarIconUrl', iconUrl);
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : 'Unable to generate an image right now.'
+          : 'Unable to generate a calendar icon right now.',
       );
     } finally {
-      setIsGenerating(false);
+      setIsGeneratingIcon(false);
     }
   };
 
@@ -260,24 +307,40 @@ export default function CreateEventPage() {
             </label>
           </div>
 
-          <div className="flex flex-col gap-3 md:flex-row md:items-end">
-            <label className="flex-1 space-y-2 text-sm">
-              <span className="font-semibold">Image URL</span>
+          <div className="space-y-3 rounded-2xl border border-[var(--color-border)] bg-white/60 p-4 text-sm">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end">
+              <label className="flex-1 space-y-2 text-sm">
+                <span className="font-semibold">Event image URL</span>
+                <input
+                  className="w-full rounded-2xl border border-[var(--color-border)] bg-white/80 px-4 py-3"
+                  onChange={(event) => handleChange('imageUrl', event.target.value)}
+                  value={formState.imageUrl}
+                  type="url"
+                />
+              </label>
+              <button
+                className="btn btn-ghost whitespace-nowrap"
+                onClick={handleGenerateImage}
+                type="button"
+                disabled={isGeneratingImage}
+              >
+                {isGeneratingImage ? 'Generating...' : 'Generate image'}
+              </button>
+            </div>
+            <label className="space-y-2 text-sm">
+              <span className="font-semibold">Upload event image</span>
               <input
                 className="w-full rounded-2xl border border-[var(--color-border)] bg-white/80 px-4 py-3"
-                onChange={(event) => handleChange('imageUrl', event.target.value)}
-                value={formState.imageUrl}
-                type="url"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    readImageFile(file, (value) => handleChange('imageUrl', value));
+                  }
+                }}
+                type="file"
+                accept="image/*"
               />
             </label>
-            <button
-              className="btn btn-ghost whitespace-nowrap"
-              onClick={handleGenerateImage}
-              type="button"
-              disabled={isGenerating}
-            >
-              {isGenerating ? 'Generating...' : 'Generate image'}
-            </button>
           </div>
           {formState.imageUrl && (
             <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white/70">
@@ -289,21 +352,78 @@ export default function CreateEventPage() {
             </div>
           )}
 
+          <div className="space-y-3 rounded-2xl border border-[var(--color-border)] bg-white/60 p-4 text-sm">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end">
+              <label className="flex-1 space-y-2 text-sm">
+                <span className="font-semibold">Calendar icon URL</span>
+                <input
+                  className="w-full rounded-2xl border border-[var(--color-border)] bg-white/80 px-4 py-3"
+                  onChange={(event) =>
+                    handleChange('calendarIconUrl', event.target.value)
+                  }
+                  value={formState.calendarIconUrl}
+                  type="url"
+                />
+              </label>
+              <button
+                className="btn btn-ghost whitespace-nowrap"
+                onClick={handleGenerateIcon}
+                type="button"
+                disabled={isGeneratingIcon}
+              >
+                {isGeneratingIcon ? 'Generating...' : 'Generate icon'}
+              </button>
+            </div>
+            <label className="space-y-2 text-sm">
+              <span className="font-semibold">Upload calendar icon</span>
+              <input
+                className="w-full rounded-2xl border border-[var(--color-border)] bg-white/80 px-4 py-3"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    readImageFile(file, (value) =>
+                      handleChange('calendarIconUrl', value),
+                    );
+                  }
+                }}
+                type="file"
+                accept="image/*"
+              />
+            </label>
+          </div>
+          {formState.calendarIconUrl && (
+            <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white/70">
+              <img
+                className="h-auto w-full object-cover"
+                src={formState.calendarIconUrl}
+                alt={formState.title ? `${formState.title} icon preview` : 'Icon preview'}
+              />
+            </div>
+          )}
+
           <div className="space-y-4 rounded-2xl border border-[var(--color-border)] bg-white/60 p-4 text-sm">
             <label className="space-y-2">
-              <span className="block font-semibold">Volunteer Event Type (Admin/Volunteer Only)</span>
+              <span className="block font-semibold">
+                Volunteer Event Type (Admin/Volunteer Only)
+              </span>
               <span className="block text-xs text-[var(--color-ink-soft)]">
                 Color coding for volunteer dashboard visibility
               </span>
               <select
                 className="w-full rounded-2xl border border-[var(--color-border)] bg-white/80 px-4 py-3"
-                onChange={(event) => handleChange('volunteerEventType', event.target.value)}
+                onChange={(event) =>
+                  handleChange('volunteerEventType', event.target.value)
+                }
                 value={formState.volunteerEventType}
               >
                 <option value="">Normal event (no special color)</option>
                 <option value="experienced">🟡 Experienced volunteers only</option>
-                <option value="quota_reached">🟢 Quota reached (disable registration)</option>
-                <option value="volunteer_only">🔵 Volunteer/External matters (hidden from participants)</option>
+                <option value="quota_reached">
+                  🟢 Quota reached (disable registration)
+                </option>
+                <option value="volunteer_only">
+                  🔵 Volunteer/External matters (hidden from participants)
+                </option>
               </select>
             </label>
           </div>

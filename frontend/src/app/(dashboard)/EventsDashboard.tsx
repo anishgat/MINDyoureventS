@@ -24,6 +24,30 @@ export default function EventsDashboard() {
   const [signups, setSignups] = useState<Signup[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLineupOpen, setIsLineupOpen] = useState(true);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const media = window.matchMedia("(min-width: 1024px)");
+    const updateLineup = (event?: MediaQueryListEvent) => {
+      setIsLineupOpen(event ? event.matches : media.matches);
+    };
+    updateLineup();
+    if (media.addEventListener) {
+      media.addEventListener("change", updateLineup);
+    } else {
+      media.addListener(updateLineup);
+    }
+    return () => {
+      if (media.removeEventListener) {
+        media.removeEventListener("change", updateLineup);
+      } else {
+        media.removeListener(updateLineup);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -86,7 +110,11 @@ export default function EventsDashboard() {
   };
 
   return (
-    <div className="min-h-screen px-2 py-4 sm:px-3 md:px-4">
+    <div
+      className={`min-h-screen px-2 py-4 transition-[padding] duration-300 sm:px-3 md:px-4 ${
+        isLineupOpen ? "lg:pr-[360px]" : ""
+      }`}
+    >
       <div className="mx-auto flex w-full max-w-[95vw] flex-col gap-8">
         <div className="fade-up" style={{ animationDelay: "0.05s" }}>
           <TopNav user={user} />
@@ -127,7 +155,17 @@ export default function EventsDashboard() {
               </Link>
             ) : null}
           </div>
-          <div className="chip">{sortedEvents.length} total events</div>
+          <div className="flex items-center gap-3">
+            <button
+              className="btn btn-ghost"
+              onClick={() => setIsLineupOpen((open) => !open)}
+              type="button"
+            >
+              {isLineupOpen ? "Hide lineup" : "Show lineup"}
+              <span className="chip">{signedEvents.length} events</span>
+            </button>
+            <div className="chip">{sortedEvents.length} total events</div>
+          </div>
         </div>
 
         {isLoading ? (
@@ -144,22 +182,22 @@ export default function EventsDashboard() {
             />
           </div>
         ) : (
-          <div
-            className="fade-up grid gap-8 lg:grid-cols-[2.2fr_0.8fr]"
-            style={{ animationDelay: "0.15s" }}
-          >
-            <div className="space-y-6 w-full min-w-0">
-              <EventCalendar
-                events={sortedEvents}
-                signedEventIds={signedEventIds}
-                userRole={user?.role}
-                onToggleSignup={handleToggleSignup}
-              />
-            </div>
-            <Sidebar signedEvents={signedEvents} />
+          <div className="fade-up w-full" style={{ animationDelay: "0.15s" }}>
+            <EventCalendar
+              events={sortedEvents}
+              signedEventIds={signedEventIds}
+              userRole={user?.role}
+              onToggleSignup={handleToggleSignup}
+            />
           </div>
         )}
       </div>
+
+      <Sidebar
+        isOpen={isLineupOpen}
+        onClose={() => setIsLineupOpen(false)}
+        signedEvents={signedEvents}
+      />
     </div>
   );
 }

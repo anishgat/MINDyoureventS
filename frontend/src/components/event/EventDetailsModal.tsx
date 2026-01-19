@@ -1,12 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { EventItem } from '@/lib/types/event';
 import type { UserRole } from '@/lib/types/user';
 import RegistrationFlow from './RegistrationFlow';
 import VolunteersList from './VolunteersList';
 import { addVolunteerToEvent, getVolunteersForEvent } from '@/lib/api/volunteers';
-import { getCurrentUser, listEventSignups, listUserSignups, listUsers } from '@/lib/api/client';
+import {
+  getCurrentUser,
+  listEventSignups,
+  listUserSignups,
+  listUsers,
+} from '@/lib/api/client';
 import { isQuotaReached } from '@/lib/utils/eventColors';
 
 type EventDetailsModalProps = {
@@ -24,7 +30,7 @@ export default function EventDetailsModal({
   onClose,
   onRegister,
 }: EventDetailsModalProps) {
-  const isVolunteerOrAdmin = userRole === "volunteer" || userRole === "admin";
+  const isVolunteerOrAdmin = userRole === 'volunteer' || userRole === 'admin';
   const [showRegistration, setShowRegistration] = useState(false);
   const [isRegistered, setIsRegistered] = useState(isSignedUp);
   const [volunteerCount, setVolunteerCount] = useState(0);
@@ -33,17 +39,25 @@ export default function EventDetailsModal({
   const [participantNames, setParticipantNames] = useState<string[]>([]);
   const [isCapacityFull, setIsCapacityFull] = useState(false);
   const [registerError, setRegisterError] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     // Lock background scroll while modal is open
     const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    
+    document.body.style.overflow = 'hidden';
+
     // Check quota / capacity status (poll so admin sees live signups)
     let interval: NodeJS.Timeout | null = null;
     const refresh = async () => {
       // Volunteer quota (communal list)
-      if ((userRole === "volunteer" || userRole === "admin") && event.volunteerQuota !== undefined) {
+      if (
+        (userRole === 'volunteer' || userRole === 'admin') &&
+        event.volunteerQuota !== undefined
+      ) {
         const volunteers = await getVolunteersForEvent(event.id);
         setVolunteerCount(volunteers.length);
         setIsQuotaFull(isQuotaReached(event, volunteers.length));
@@ -58,22 +72,30 @@ export default function EventDetailsModal({
         listUsers(),
       ]);
       const userNameById = new Map(users.map((u) => [u.id, u.name] as const));
-      const participants = eventSignups.filter((signup) => signup.role === "participant");
+      const participants = eventSignups.filter((signup) => signup.role === 'participant');
       setParticipantCount(participants.length);
       setParticipantNames(
-        participants.map((signup) => userNameById.get(signup.userId) ?? signup.userId)
+        participants.map((signup) => userNameById.get(signup.userId) ?? signup.userId),
       );
-      setIsCapacityFull(event.capacity > 0 ? participants.length >= event.capacity : false);
+      setIsCapacityFull(
+        event.capacity > 0 ? participants.length >= event.capacity : false,
+      );
     };
 
     refresh();
     interval = setInterval(refresh, 2000);
-    
+
     return () => {
       document.body.style.overflow = originalOverflow;
       if (interval) clearInterval(interval);
     };
-  }, [event.id, event.volunteerQuota, event.volunteerEventType, event.capacity, userRole]);
+  }, [
+    event.id,
+    event.volunteerQuota,
+    event.volunteerEventType,
+    event.capacity,
+    userRole,
+  ]);
 
   const handleRegisterComplete = async (data: { name: string; joinTime: string }) => {
     setRegisterError(null);
@@ -82,16 +104,16 @@ export default function EventDetailsModal({
     const mySignups = await listUserSignups(me.id);
     const didSignup = mySignups.some((signup) => signup.eventId === event.id);
     setIsRegistered(didSignup);
-    if (didSignup && userRole === "volunteer" && data.name) {
+    if (didSignup && userRole === 'volunteer' && data.name) {
       await addVolunteerToEvent(event.id, data.name);
     }
     if (!didSignup) {
-      if (isCapacityFull && userRole === "participant") {
-        setRegisterError("This event is full. Please pick another event.");
-      } else if (isQuotaFull && userRole === "volunteer") {
-        setRegisterError("Volunteer quota is full for this event.");
+      if (isCapacityFull && userRole === 'participant') {
+        setRegisterError('This event is full. Please pick another event.');
+      } else if (isQuotaFull && userRole === 'volunteer') {
+        setRegisterError('Volunteer quota is full for this event.');
       } else {
-        setRegisterError("Could not complete registration. Please try again.");
+        setRegisterError('Could not complete registration. Please try again.');
       }
     }
     setShowRegistration(false);
@@ -102,8 +124,12 @@ export default function EventDetailsModal({
     onClose();
   };
 
-  return (
-    <>
+  if (!isMounted) {
+    return null;
+  }
+
+  return createPortal(
+    <div>
       {/* Backdrop */}
       <div
         className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
@@ -112,14 +138,14 @@ export default function EventDetailsModal({
       />
 
       {/* Main Modal */}
-      <div className="fixed inset-4 z-50 mx-auto max-h-[90vh] max-w-4xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+      <div className="fixed left-1/2 top-1/2 z-50 h-[90vh] w-[calc(100%-2rem)] max-w-4xl -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl bg-white shadow-2xl max-h-[90vh]">
         <div className="flex h-full flex-col overflow-hidden">
           {/* Header */}
           <div
             className={`relative flex-shrink-0 p-6 ${
               isVolunteerOrAdmin
-                ? "bg-slate-900"
-                : "bg-gradient-to-br from-[#3b82f6] via-[#22c55e] to-[#f97316]"
+                ? 'bg-slate-900'
+                : 'bg-gradient-to-br from-[#3b82f6] via-[#22c55e] to-[#f97316]'
             }`}
           >
             <button
@@ -147,21 +173,56 @@ export default function EventDetailsModal({
             </h2>
             <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-white/95">
               <span className="flex items-center gap-1.5 rounded-full bg-white/25 px-3 py-1.5 backdrop-blur-sm">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
                 </svg>
                 {event.date}
               </span>
               <span className="flex items-center gap-1.5 rounded-full bg-white/25 px-3 py-1.5 backdrop-blur-sm">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
                 {event.startTime} - {event.endTime}
               </span>
               <span className="flex items-center gap-1.5 rounded-full bg-white/25 px-3 py-1.5 backdrop-blur-sm">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
                 </svg>
                 {event.location}
               </span>
@@ -172,29 +233,43 @@ export default function EventDetailsModal({
           <div className="flex-1 overflow-y-auto p-6">
             {/* Media Section */}
             {event.imageUrl ? (
-              <div className="mb-6 overflow-hidden rounded-2xl">
+              <div className="mb-6 h-84 overflow-hidden rounded-2xl sm:h-94">
                 <img
                   src={event.imageUrl}
                   alt={event.title}
-                  className="h-auto w-full object-cover"
+                  className="h-full w-full object-cover"
                 />
               </div>
             ) : (
               <div className="mb-6 flex h-48 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#e0f2fe] via-[#fef3c7] to-[#fce7f3]">
                 <div className="text-center">
                   <div className="mx-auto mb-3 h-20 w-20 rounded-full bg-white/80 p-4">
-                    <svg className="h-full w-full text-[#3b82f6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    <svg
+                      className="h-full w-full text-[#3b82f6]"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
                     </svg>
                   </div>
-                  <p className="text-sm font-semibold text-[var(--color-ink-soft)]">Event Image</p>
+                  <p className="text-sm font-semibold text-[var(--color-ink-soft)]">
+                    Event Image
+                  </p>
                 </div>
               </div>
             )}
 
             {/* Description */}
             <div className="mb-6">
-              <h3 className="mb-3 text-xl font-bold text-[var(--color-ink)]">About This Event</h3>
+              <h3 className="mb-3 text-xl font-bold text-[var(--color-ink)]">
+                About This Event
+              </h3>
               <p className="text-base leading-relaxed text-[var(--color-ink-soft)] whitespace-pre-line">
                 {event.description}
               </p>
@@ -203,7 +278,9 @@ export default function EventDetailsModal({
             {/* Additional Info */}
             <div className="grid gap-4 rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-mist)] p-5 sm:grid-cols-2">
               <div>
-                <p className="mb-1 text-sm font-bold text-[var(--color-ink)]">Hosted by</p>
+                <p className="mb-1 text-sm font-bold text-[var(--color-ink)]">
+                  Hosted by
+                </p>
                 <p className="text-sm text-[var(--color-ink-soft)]">Hack4Good Staff</p>
               </div>
               <div>
@@ -214,14 +291,17 @@ export default function EventDetailsModal({
                     : 'Unlimited'}
                 </p>
               </div>
-              {(userRole === 'volunteer' || userRole === 'admin') && event.volunteerQuota !== undefined && (
-                <div>
-                  <p className="mb-1 text-sm font-bold text-[var(--color-ink)]">Volunteers Needed</p>
-                  <p className="text-sm font-semibold text-[#3b82f6]">
-                    {event.volunteerQuota} volunteers required
-                  </p>
-                </div>
-              )}
+              {(userRole === 'volunteer' || userRole === 'admin') &&
+                event.volunteerQuota !== undefined && (
+                  <div>
+                    <p className="mb-1 text-sm font-bold text-[var(--color-ink)]">
+                      Volunteers Needed
+                    </p>
+                    <p className="text-sm font-semibold text-[#3b82f6]">
+                      {event.volunteerQuota} volunteers required
+                    </p>
+                  </div>
+                )}
               <div className="sm:col-span-2">
                 <p className="mb-1 text-sm font-bold text-[var(--color-ink)]">Check-in</p>
                 <p className="text-sm text-[var(--color-ink-soft)]">
@@ -231,7 +311,7 @@ export default function EventDetailsModal({
             </div>
 
             {/* Signups */}
-            {userRole === "admin" ? (
+            {userRole === 'admin' ? (
               <div className="mt-6 grid gap-6 md:grid-cols-2">
                 {event.volunteerQuota !== undefined ? (
                   <VolunteersList
@@ -242,7 +322,9 @@ export default function EventDetailsModal({
                 ) : (
                   <div className="rounded-2xl border-2 border-[var(--color-border)] bg-white/80 p-5">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-lg font-bold text-[var(--color-ink)]">Volunteers</h4>
+                      <h4 className="text-lg font-bold text-[var(--color-ink)]">
+                        Volunteers
+                      </h4>
                       <span className="chip">N/A</span>
                     </div>
                     <p className="mt-3 text-sm text-[var(--color-ink-soft)]">
@@ -253,7 +335,9 @@ export default function EventDetailsModal({
 
                 <div className="rounded-2xl border-2 border-[var(--color-border)] bg-white/80 p-5">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-lg font-bold text-[var(--color-ink)]">Participant signups</h4>
+                    <h4 className="text-lg font-bold text-[var(--color-ink)]">
+                      Participant signups
+                    </h4>
                     <span className="chip">{participantCount} total</span>
                   </div>
                   {participantNames.length === 0 ? (
@@ -275,7 +359,7 @@ export default function EventDetailsModal({
                 </div>
               </div>
             ) : (
-              (userRole === "volunteer" || userRole === "admin") &&
+              userRole !== 'participant' &&
               event.volunteerQuota !== undefined && (
                 <div className="mt-6">
                   <VolunteersList
@@ -301,8 +385,18 @@ export default function EventDetailsModal({
                 type="button"
                 disabled
               >
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={3}
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
                 Registered!
               </button>
@@ -345,6 +439,7 @@ export default function EventDetailsModal({
           onCancel={() => setShowRegistration(false)}
         />
       )}
-    </>
+    </div>,
+    document.body,
   );
 }
